@@ -1,0 +1,6 @@
+table,dimensions,cells,max_gap_pct_points,mean_gap_pct_points
+age_income_work,age x income x work,216,0.74,0.084
+location_age_sex,location x age x sex,36,1.01,0.285
+location_age_sex_income,location x age x sex x income,216,0.51,0.095
+location_age_sex_living,location x age x sex x living,192,0.92,0.098
+location_age_sex_work,location x age x sex x work,144,0.68,0.11
