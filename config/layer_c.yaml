@@ -1,0 +1,94 @@
+# Layer C: behaviour and personality.
+#
+# Every number in this file is either taken from a named source or is a
+# stated ASSUMPTION. Assumptions are tested later with a sensitivity analysis
+# (Phase 6): change a value here, rebuild, rerun the simulation, compare.
+#
+# Rebuild after editing:  python -m src.population.layer_c
+
+seed: 42
+
+# ---------------------------------------------------------------------------
+# 1. Person-to-person spending variation                         ASSUMPTION
+# Layer B gives every agent the AVERAGE spend for their income group. Real
+# people vary a lot around that. Each agent gets a multiplier drawn from a
+# log-normal distribution with mean 1, so group averages are unchanged.
+# sigma = spread: 0.6 means roughly half of people spend between 0.6x and 1.4x
+# the group average, with a long tail of heavy spenders.
+spending_variation:
+  eating_out:            # one multiplier shared by these, so a person who eats
+    sigma: 0.6           # out a lot also buys takeaway and coffee a lot
+    categories: [restaurants, takeaway, takeaway_coffee]
+  everything_else:
+    sigma: 0.3
+    categories: [groceries, alcohol, clothing_footwear, household_goods,
+                 personal_care, recreation]
+
+# ---------------------------------------------------------------------------
+# 2. Personality traits, each a score from 0 to 1                ASSUMPTION
+# Drawn from Beta distributions. `mean_by` says which attribute shifts the
+# average; `concentration` controls spread (higher = people more alike).
+traits:
+  price_sensitivity:     # how much price drives the choice between options
+    mean_by: income_quintile
+    means: {lowest: 0.70, second: 0.62, third: 0.55, fourth: 0.47, highest: 0.38}
+    concentration: 6
+  novelty_seeking:       # willingness to try a business they have not used
+    mean_by: age
+    means: {"15-19": 0.65, "20-24": 0.65, "25-34": 0.60, "35-44": 0.52, "45-54": 0.47,
+            "55-64": 0.42, "65-74": 0.37, "75-84": 0.32, "85+": 0.30}
+    concentration: 5
+  habit_loyalty:         # tendency to stick with places they already use
+    mean_by: age
+    means: {"15-19": 0.40, "20-24": 0.42, "25-34": 0.45, "35-44": 0.50, "45-54": 0.54,
+            "55-64": 0.58, "65-74": 0.62, "75-84": 0.65, "85+": 0.66}
+    concentration: 5
+
+# Correlation between the three traits (Gaussian copula), in the order above.
+# People who like trying new places are somewhat less loyal to old ones.
+trait_correlation:
+  - [ 1.0, -0.1,  0.1]
+  - [-0.1,  1.0, -0.4]
+  - [ 0.1, -0.4,  1.0]
+
+# ---------------------------------------------------------------------------
+# 3. Word of mouth                                               ASSUMPTION
+# How many people an agent would tell about a place they liked, per month.
+# Heavy-tailed: most people tell a few, a small number tell many.
+word_of_mouth:
+  median: 4
+  sigma: 0.9
+  max: 100
+  age_factor: {"15-19": 1.3, "20-24": 1.3, "25-34": 1.15, "35-44": 1.0, "45-54": 1.0,
+               "55-64": 0.9, "65-74": 0.8, "75-84": 0.7, "85+": 0.6}
+
+# ---------------------------------------------------------------------------
+# 4. Uses meal delivery apps (Uber Eats, Menulog, DoorDash...)    DATA + ASSUMPTION
+# Source: Roy Morgan Single Source, Jan-Mar 2022, Australians 14+, used a meal
+# delivery service in an average three months. By generation: Gen Z 43.0%,
+# Millennials 45.8%, Gen X 29.6%, Baby Boomers 15.9%, Pre-Boomers 12.3%.
+# NSW overall 36.6%. Generations are mapped to our age bands (2021 ages)
+# by the share of each band born in each generation.
+delivery_apps:
+  by_age: {"15-19": 0.430, "20-24": 0.430, "25-34": 0.438, "35-44": 0.458, "45-54": 0.328,
+           "55-64": 0.255, "65-74": 0.159, "75-84": 0.130, "85+": 0.123}
+  nsw_target: 0.366            # rates above are scaled so NSW averages this
+  rest_of_nsw_relative: 0.75   # ASSUMPTION: regional NSW uses them less than Sydney
+
+# ---------------------------------------------------------------------------
+# 5. Diet
+vegetarian:                    # DATA + ASSUMPTION
+  # Source: Roy Morgan, 2018: 12.1% of Australians 14+ eat all or almost all
+  # vegetarian; higher among young inner-city adults and in capital cities.
+  target: 0.121
+  # ASSUMPTION: relative likelihood by age and location, then scaled to target
+  age_factor: {"15-19": 1.4, "20-24": 1.5, "25-34": 1.4, "35-44": 1.1, "45-54": 0.9,
+               "55-64": 0.8, "65-74": 0.75, "75-84": 0.7, "85+": 0.7}
+  location_factor: {greater_sydney: 1.15, rest_of_nsw: 0.75}
+
+halal:                         # DATA + ASSUMPTION
+  # Source: 2021 Census G14 (religious affiliation), people of Islamic faith:
+  # Greater Sydney 329,566 of 5,231,147; rest of NSW 19,509 of 2,829,637.
+  islam_share: {greater_sydney: 0.0630, rest_of_nsw: 0.0069}
+  # ASSUMPTION: share of those who look for halal food when eating out
+  observance: 0.75

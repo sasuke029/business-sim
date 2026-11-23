@@ -1,0 +1,27 @@
+check,group,agents,reference,note
+Share of agents in income quintile,lowest,21.0,20.0,Census cut-offs put 20% of all people in each; agents are aged 15+ only
+Share of agents in income quintile,second,21.8,20.0,Census cut-offs put 20% of all people in each; agents are aged 15+ only
+Share of agents in income quintile,third,19.3,20.0,Census cut-offs put 20% of all people in each; agents are aged 15+ only
+Share of agents in income quintile,fourth,18.3,20.0,Census cut-offs put 20% of all people in each; agents are aged 15+ only
+Share of agents in income quintile,highest,19.6,20.0,Census cut-offs put 20% of all people in each; agents are aged 15+ only
+"Share with household income under $1,000 (%)",partnered,15.4,14.7,Census: people in the household types this living arrangement can be in
+"Share with household income $3,000 or more (%)",partnered,38.6,38.4,Census: people in the household types this living arrangement can be in
+"Share with household income under $1,000 (%)",lone_parent,33.7,33.0,Census: people in the household types this living arrangement can be in
+"Share with household income $3,000 or more (%)",lone_parent,9.9,11.8,Census: people in the household types this living arrangement can be in
+"Share with household income under $1,000 (%)",child_at_home,11.4,11.6,Census: people in the household types this living arrangement can be in
+"Share with household income $3,000 or more (%)",child_at_home,40.3,41.5,Census: people in the household types this living arrangement can be in
+"Share with household income under $1,000 (%)",other_in_family_home,28.8,22.3,Census: people in the household types this living arrangement can be in
+"Share with household income $3,000 or more (%)",other_in_family_home,14.4,20.4,Census: people in the household types this living arrangement can be in
+"Share with household income under $1,000 (%)",group_household,20.5,15.2,Census: people in the household types this living arrangement can be in
+"Share with household income $3,000 or more (%)",group_household,28.2,30.7,Census: people in the household types this living arrangement can be in
+"Share with household income under $1,000 (%)",lone_person,62.3,60.8,Census: people in the household types this living arrangement can be in
+"Share with household income $3,000 or more (%)",lone_person,3.5,5.1,Census: people in the household types this living arrangement can be in
+"Average weekly spend per adult ($, current prices)",alcohol,19.75,20.74,Survey: Australia-wide average across the five quintiles
+"Average weekly spend per adult ($, current prices)",clothing_footwear,22.24,23.27,Survey: Australia-wide average across the five quintiles
+"Average weekly spend per adult ($, current prices)",groceries,105.62,106.83,Survey: Australia-wide average across the five quintiles
+"Average weekly spend per adult ($, current prices)",household_goods,33.83,35.11,Survey: Australia-wide average across the five quintiles
+"Average weekly spend per adult ($, current prices)",personal_care,14.34,14.92,Survey: Australia-wide average across the five quintiles
+"Average weekly spend per adult ($, current prices)",recreation,102.8,107.84,Survey: Australia-wide average across the five quintiles
+"Average weekly spend per adult ($, current prices)",restaurants,28.82,30.57,Survey: Australia-wide average across the five quintiles
+"Average weekly spend per adult ($, current prices)",takeaway,21.4,22.23,Survey: Australia-wide average across the five quintiles
+"Average weekly spend per adult ($, current prices)",takeaway_coffee,2.83,3.0,Survey: Australia-wide average across the five quintiles

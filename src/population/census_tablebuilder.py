@@ -1,28 +1,34 @@
-"""Add the income-by-work-status link from an ABS TableBuilder export.
+"""Add links between attributes from ABS TableBuilder exports.
 
-The General Community Profile has no table that crosses income with labour
-force status, so on its own the pipeline treats them as unrelated within each
-location, age and sex group. This module reads a TableBuilder table that does
-cross them and writes it as one more tidy table for the pipeline.
+The General Community Profile breaks every table down by location, age and
+sex and nothing else, so on its own the pipeline treats income, work status
+and living arrangement as unrelated within each of those groups. The tables
+read here cross those attributes directly.
 
-Input:  TableBuilder export (.xlsx), 2021 Census, NSW filter, built as
-            rows    INCP  Total Personal Income (weekly)
-            columns LFSP  Labour Force Status
-            wafers  AGE5P Age in Five Year Groups
-Output: data/processed/tables/age_income_work.csv
+Inputs: TableBuilder exports (.xlsx), 2021 Census, dataset "employment, income
+and education", filter STATE (UR) = New South Wales. Two layouts are recognised:
+
+    1. INCP x LFSP x AGE5P  (rows income, columns labour force status, wafers age)
+       -> data/processed/tables/age_income_work.csv
+    2. RLHP x INCP          (rows relationship in household, columns income)
+       -> data/processed/tables/living_income.csv
 
 Usage (run after census_gcp, from the project root):
-    python -m src.population.census_tablebuilder --file data/raw/tablebuilder_incp_lfsp_age5p_nsw.xlsx
+    python -m src.population.census_tablebuilder \
+        --file data/raw/tablebuilder_incp_lfsp_age5p_nsw.xlsx \
+        --file data/raw/tablebuilder_rlhp_incp_nsw.xlsx
 
 Choices made here:
 - "Not stated" and "Not applicable" answers are dropped.
 - "Employed, away from work" is split between full-time and part-time in the
   same ratio as people of the same age and income whose hours are known.
-- This table and the Community Profile tables handle missing answers
-  differently, so their income and work totals by age disagree slightly. The
-  table is adjusted (raked) so its totals match the Community Profile tables
-  exactly. That keeps what this table is for, the strength of the link between
-  income and work at each age, and lets the totals come from one place.
+- Relationship in household is grouped the same way as in census_gcp.
+  Children under 15, visitors and unclassifiable relationships are left out.
+- These tables and the Community Profile tables handle missing answers
+  differently, so their totals disagree slightly. Each table is adjusted
+  (raked) so its totals match the Community Profile tables exactly. That keeps
+  what the table is for, the strength of the link between its attributes, and
+  lets the totals come from one place.
 """
 import argparse
 import re
@@ -43,6 +49,33 @@ WORK = {
     "Unemployed, looking for part-time work": "unemployed",
     "Not in the labour force": "not_in_labour_force",
 }
+
+
+LIVING_PREFIXES = [
+    ("Husband, Wife or Partner", "partnered"),
+    ("Lone parent", "lone_parent"),
+    ("Natural or adopted dependent student", "child_at_home"),
+    ("Dependent student", "child_at_home"),
+    ("Non-dependent natural", "child_at_home"),
+    ("Non-dependent step child", "child_at_home"),
+    ("Non-dependent foster child", "child_at_home"),
+    ("Brother/sister", "other_in_family_home"),
+    ("Father/mother", "other_in_family_home"),
+    ("Non-dependent grandchild", "other_in_family_home"),
+    ("Grandfather/grandmother", "other_in_family_home"),
+    ("Cousin", "other_in_family_home"),
+    ("Uncle/aunt", "other_in_family_home"),
+    ("Nephew/niece", "other_in_family_home"),
+    ("Other related individual", "other_in_family_home"),
+    ("Unrelated individual living in family household", "other_in_family_home"),
+    ("Group household member", "group_household"),
+    ("Lone person", "lone_person"),
+]
+
+
+def _living(label: str):
+    label = str(label).strip()
+    return next((cat for prefix, cat in LIVING_PREFIXES if label.startswith(prefix)), None)
 
 
 def _age_band(sheet_name: str):
@@ -100,6 +133,53 @@ def read_export(path) -> pd.DataFrame:
     return out
 
 
+def read_living_income(path) -> pd.DataFrame:
+    """Read the RLHP x INCP workbook into long form: living, income, count."""
+    raw = pd.read_excel(path, sheet_name=0, header=None)
+    header = raw.index[raw.iloc[:, 0].astype(str).str.startswith("INCP")]
+    if len(header) == 0:
+        raise ValueError("Expected income (INCP) across the columns and relationship (RLHP) down the rows")
+    labels = raw.loc[header[0]]
+    rows, seen = [], set()
+    for i in range(header[0] + 1, len(raw)):
+        living = _living(raw.iat[i, 1])
+        if living is None:
+            continue
+        seen.add(living)
+        for col, label in labels.items():
+            income = _income_label(label) if col >= 2 else None
+            if income:
+                rows.append((living, income, float(raw.iat[i, col])))
+    missing = set(categories("living")) - seen
+    if missing:
+        raise ValueError(f"The table has no rows for: {sorted(missing)}. "
+                         "Select every RLHP category before downloading.")
+    out = pd.DataFrame(rows, columns=["living", "income", "count"])
+    return out.groupby(["living", "income"], as_index=False)["count"].sum()
+
+
+def _rake(cross: pd.DataFrame, dims: list, margins: list, total: float) -> pd.DataFrame:
+    """Adjust `cross` so it matches each (dims, table) pair in `margins`,
+    keeping the strength of association in `cross`."""
+    seed = _array(cross, dims)
+    fit = ipf(dims, list(seed.shape),
+              [Constraint(tuple(m_dims), _array(m_table, list(m_dims))) for m_dims, m_table in margins],
+              seed=seed, tol=1e-6, max_iter=2000)
+    if not fit.converged:
+        raise RuntimeError("Could not reconcile the TableBuilder table with the Community Profile tables")
+    idx = pd.MultiIndex.from_product([categories(d) for d in dims], names=dims)
+    out = pd.Series((fit.table * total).round().astype(int).ravel(), index=idx, name="count")
+    return out.reset_index()
+
+
+def rake_living_income(cross: pd.DataFrame, tables_dir) -> pd.DataFrame:
+    tables_dir = Path(tables_dir)
+    income = pd.read_csv(tables_dir / "location_age_sex_income.csv")
+    living = pd.read_csv(tables_dir / "location_age_sex_living.csv")
+    return _rake(cross, ["living", "income"],
+                 [(("living",), living), (("income",), income)], income["count"].sum())
+
+
 def _array(df: pd.DataFrame, dims) -> np.ndarray:
     arr = np.zeros([len(categories(d)) for d in dims])
     for row in df.itertuples(index=False):
@@ -108,40 +188,43 @@ def _array(df: pd.DataFrame, dims) -> np.ndarray:
 
 
 def rake_to_profile(cross: pd.DataFrame, tables_dir) -> pd.DataFrame:
-    """Adjust the cross table so its age x income and age x work totals match
-    the Community Profile tables already in `tables_dir`."""
+    """Adjust the income x work table so its age x income and age x work totals
+    match the Community Profile tables already in `tables_dir`."""
     tables_dir = Path(tables_dir)
     income = pd.read_csv(tables_dir / "location_age_sex_income.csv")
     work = pd.read_csv(tables_dir / "location_age_sex_work.csv")
-    dims = ["age", "income", "work"]
-    seed = _array(cross, dims)
-    fit = ipf(dims, list(seed.shape),
-              [Constraint(("age", "income"), _array(income, ["age", "income"])),
-               Constraint(("age", "work"), _array(work, ["age", "work"]))],
-              seed=seed, tol=1e-6, max_iter=2000)
-    if not fit.converged:
-        raise RuntimeError("Could not reconcile the TableBuilder table with the Community Profile tables")
-    total = income["count"].sum()
-    rows = [(a, i, w, int(round(fit.table[x, y, z] * total)))
-            for x, a in enumerate(categories("age"))
-            for y, i in enumerate(categories("income"))
-            for z, w in enumerate(categories("work"))]
-    return pd.DataFrame(rows, columns=dims + ["count"])
+    return _rake(cross, ["age", "income", "work"],
+                 [(("age", "income"), income), (("age", "work"), work)], income["count"].sum())
 
 
-def convert(path, tables_dir="data/processed/tables") -> pd.DataFrame:
-    table = rake_to_profile(read_export(path), tables_dir)
-    table.to_csv(Path(tables_dir) / "age_income_work.csv", index=False)
-    return table
+def detect_layout(path) -> str:
+    title = " ".join(str(v) for v in pd.read_excel(path, sheet_name=0, header=None, nrows=4).values.ravel())
+    if "RLHP" in title and "INCP" in title:
+        return "living_income"
+    if "AGE5P" in title and "LFSP" in title and "INCP" in title:
+        return "age_income_work"
+    raise ValueError(f"{path}: not a table layout this module knows. See the module docstring.")
+
+
+def convert(path, tables_dir="data/processed/tables"):
+    """Convert one export. Returns (table name, table)."""
+    layout = detect_layout(path)
+    if layout == "living_income":
+        table = rake_living_income(read_living_income(path), tables_dir)
+    else:
+        table = rake_to_profile(read_export(path), tables_dir)
+    table.to_csv(Path(tables_dir) / f"{layout}.csv", index=False)
+    return layout, table
 
 
 def main():
-    p = argparse.ArgumentParser(description="Add the income x work table from a TableBuilder export")
-    p.add_argument("--file", required=True, help="TableBuilder .xlsx export")
+    p = argparse.ArgumentParser(description="Add linking tables from TableBuilder exports")
+    p.add_argument("--file", required=True, action="append", help="TableBuilder .xlsx export (repeatable)")
     p.add_argument("--tables", default="data/processed/tables")
     a = p.parse_args()
-    t = convert(a.file, a.tables)
-    print(f"age_income_work: {len(t)} cells, {int(t['count'].sum()):,} people")
+    for f in a.file:
+        name, t = convert(f, a.tables)
+        print(f"{name}: {len(t)} cells, {int(t['count'].sum()):,} people")
 
 
 if __name__ == "__main__":

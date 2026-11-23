@@ -1,0 +1,38 @@
+check,group,agents,reference,note
+Average weekly spend kept after variation ($),restaurants,27.74,28.82,Should be close: multipliers average 1
+Average weekly spend kept after variation ($),takeaway,20.64,21.4,Should be close: multipliers average 1
+Average weekly spend kept after variation ($),takeaway_coffee,2.73,2.83,Should be close: multipliers average 1
+Average weekly spend kept after variation ($),groceries,106.08,105.62,Should be close: multipliers average 1
+Average weekly spend kept after variation ($),alcohol,19.81,19.75,Should be close: multipliers average 1
+Average weekly spend kept after variation ($),clothing_footwear,22.33,22.24,Should be close: multipliers average 1
+Average weekly spend kept after variation ($),household_goods,33.95,33.83,Should be close: multipliers average 1
+Average weekly spend kept after variation ($),personal_care,14.39,14.34,Should be close: multipliers average 1
+Average weekly spend kept after variation ($),recreation,103.15,102.8,Should be close: multipliers average 1
+Mean price_sensitivity by income_quintile,lowest,0.687,0.7,n=420
+Mean price_sensitivity by income_quintile,second,0.596,0.62,n=436
+Mean price_sensitivity by income_quintile,third,0.55,0.55,n=386
+Mean price_sensitivity by income_quintile,fourth,0.479,0.47,n=366
+Mean price_sensitivity by income_quintile,highest,0.389,0.38,n=392
+Mean novelty_seeking by age,15-19,0.634,0.65,n=129
+Mean novelty_seeking by age,20-24,0.658,0.65,n=137
+Mean novelty_seeking by age,25-34,0.611,0.6,n=359
+Mean novelty_seeking by age,35-44,0.517,0.52,n=338
+Mean novelty_seeking by age,45-54,0.478,0.47,n=299
+Mean novelty_seeking by age,55-64,0.431,0.42,n=308
+Mean novelty_seeking by age,65-74,0.379,0.37,n=231
+Mean novelty_seeking by age,75-84,0.338,0.32,n=136
+Mean novelty_seeking by age,85+,0.278,0.3,n=63
+Mean habit_loyalty by age,15-19,0.428,0.4,n=129
+Mean habit_loyalty by age,20-24,0.437,0.42,n=137
+Mean habit_loyalty by age,25-34,0.439,0.45,n=359
+Mean habit_loyalty by age,35-44,0.523,0.5,n=338
+Mean habit_loyalty by age,45-54,0.537,0.54,n=299
+Mean habit_loyalty by age,55-64,0.575,0.58,n=308
+Mean habit_loyalty by age,65-74,0.607,0.62,n=231
+Mean habit_loyalty by age,75-84,0.616,0.65,n=136
+Mean habit_loyalty by age,85+,0.684,0.66,n=63
+Uses delivery apps (%),NSW,37.0,36.6,Roy Morgan 2022
+Vegetarian (%),NSW,13.0,12.1,Roy Morgan 2018
+Looks for halal food (%),greater_sydney,5.0,4.7,"Census G14 x assumption, n=1288"
+Looks for halal food (%),rest_of_nsw,0.6,0.5,"Census G14 x assumption, n=712"
+Word of mouth reach,median,4.0,4.0,top 10% tell 12+ people

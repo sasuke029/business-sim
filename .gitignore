@@ -7,3 +7,6 @@ __pycache__/
 # raw census downloads are large and can be re-downloaded
 data/raw/*
 !data/raw/.gitkeep
+
+# Word/Excel lock files
+~$*

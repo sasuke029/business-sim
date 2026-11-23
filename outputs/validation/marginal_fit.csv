@@ -22,9 +22,9 @@ work,full_time,38.16,37.3,-0.86
 work,part_time,20.91,20.9,-0.01
 work,unemployed,3.04,3.05,0.01
 work,not_in_labour_force,37.9,38.75,0.85
-living,partnered,57.6,57.4,-0.2
-living,lone_parent,5.6,6.05,0.45
-living,child_at_home,15.16,15.35,0.19
-living,other_in_family_home,4.97,4.7,-0.27
-living,group_household,4.41,4.3,-0.11
-living,lone_person,12.26,12.2,-0.06
+living,partnered,57.6,58.1,0.5
+living,lone_parent,5.6,5.05,-0.55
+living,child_at_home,15.16,14.9,-0.26
+living,other_in_family_home,4.97,5.2,0.23
+living,group_household,4.41,3.9,-0.51
+living,lone_person,12.26,12.85,0.59

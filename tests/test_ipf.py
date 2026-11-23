@@ -88,3 +88,56 @@ def test_tablebuilder_label_parsing():
     assert _income_label("$1,000-$1,249 ($52,000-$64,999)") == "$1000-1499"
     assert _income_label("$3,500 or more ($182,000 or more)") == "$2000+"
     assert _income_label("Not stated") is None
+
+
+def test_relationship_grouping():
+    from src.population.census_tablebuilder import _living
+    assert _living("Husband, Wife or Partner in de facto marriage, male same-sex couple") == "partnered"
+    assert _living("Natural or adopted dependent student") == "child_at_home"
+    assert _living("Non-dependent step child") == "child_at_home"
+    assert _living("Non-dependent grandchild") == "other_in_family_home"
+    assert _living("Unrelated individual living in family household") == "other_in_family_home"
+    assert _living("Group household member") == "group_household"
+    assert _living("Natural or adopted child under 15") is None
+    assert _living("Visitor (from within Australia)") is None
+    assert _living("Total") is None
+
+
+def test_household_income_bands():
+    from src.population.households import _band
+    assert _band("Nil income") == (0.0, 1.0)
+    assert _band("$1,000-$1,249 ($52,000-$64,999)") == (1000.0, 1250.0)
+    assert _band("$8,000 or more ($416,000 or more)") == (8000.0, 12000.0)
+    assert _band("Partial income stated") is None
+    assert _band("Total") is None
+
+
+def test_equivalence_scale():
+    from src.population.households import equivalence_scale
+    kinds = pd.Series(["lone_person", "couple_no_children", "couple_with_children", "group"])
+    sizes = pd.Series([1, 2, 4, 3])
+    all_young = equivalence_scale(kinds, sizes, under15=1.0)
+    assert list(all_young.round(2)) == [1.0, 1.5, 2.1, 2.0]
+    all_older = equivalence_scale(kinds, sizes, under15=0.0)
+    assert all_older[2] == pytest.approx(2.5)
+
+
+def test_household_never_poorer_than_agent():
+    from src.population.households import assign_households
+    households = pd.DataFrame({
+        "household_type": ["couple_no_children"] * 3 + ["lone_person"] * 3,
+        "size": [2, 2, 2, 1, 1, 1],
+        "income_low": [0.0, 1000.0, 3000.0, 0.0, 500.0, 2000.0],
+        "income_high": [1.0, 1250.0, 3500.0, 1.0, 650.0, 2500.0],
+        "dwellings": [10.0, 50.0, 40.0, 10.0, 60.0, 30.0],
+    })
+    agents = pd.DataFrame({"living": ["partnered"] * 200 + ["lone_person"] * 200,
+                           "income": (["$2000+"] * 100 + ["nil_or_negative"] * 100) * 2})
+    li = agents.value_counts(["living", "income"]).rename("count").reset_index()
+    out = assign_households(agents, households, li, under15=0.6, seed=1)
+    rich_partner = out[(out.living == "partnered") & (out.income == "$2000+")]
+    assert (rich_partner.household_income_weekly >= 2000).all()
+    alone = out[out.living == "lone_person"]
+    assert (alone[alone.income == "$2000+"].household_income_weekly >= 2000).all()
+    assert (alone[alone.income == "nil_or_negative"].household_income_weekly <= 1).all()
+    assert set(out.income_quintile) <= {"lowest", "second", "third", "fourth", "highest"}
